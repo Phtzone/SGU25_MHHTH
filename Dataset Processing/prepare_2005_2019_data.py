@@ -403,13 +403,20 @@ if len(provincial_data) > 0:
         print(f'  [WARNING] {len(low_coverage_months)} months have < 50 provinces')
         print(f'    These months may have incomplete data')
     
+    # --- START FIX: LỌC BỎ THÁNG THIẾU DỮ LIỆU TỈNH ---
+    # Chỉ tổng hợp dữ liệu Quốc gia từ các tháng có ít nhất 20 tỉnh báo cáo
+    # (Số 19 ca thấp bất thường chắc chắn do < 5 tỉnh báo cáo)
+    valid_months = provinces_by_month[provinces_by_month >= 20].index
+    provincial_data_clean = provincial_data[provincial_data['YearMonth'].isin(valid_months)]
+    
     provincial_agg = (
-        provincial_data
+        provincial_data_clean
         .fillna({'dengue_total_month': 0})
         .groupby(['YearMonth', 'Year', 'Month'], as_index=False)
         .agg({'dengue_total_month': 'sum'})
         .assign(adm_1_name='National')
     )
+    # --- END FIX ---
     print(f'Aggregated from provincial data: {len(provincial_agg)} months')
     
     # Combine: use National if exists, otherwise use aggregated
@@ -446,6 +453,23 @@ print(f'  Mean cases/month: {national["dengue_total_month"].mean():.0f}')
 print(f'  Median cases/month: {national["dengue_total_month"].median():.0f}')
 print(f'  Min/Max: {national["dengue_total_month"].min():.0f} / {national["dengue_total_month"].max():.0f}')
 print(f'  Date range: {national["YearMonth"].min()} to {national["YearMonth"].max()}')
+
+# --- FIX: HANDLE OUTLIERS (e.g. 19 cases in April 2011) ---
+# If cases are extremely low (< 50) in a month, treat as missing and interpolate
+# This handles the specific issue where April 2011 has 19 cases (likely data error)
+low_cases_mask = national['dengue_total_month'] < 50
+if low_cases_mask.any():
+    print(f'\n[INFO] Found {low_cases_mask.sum()} months with < 50 cases - treating as outliers and interpolating')
+    print(national[low_cases_mask][['YearMonth', 'dengue_total_month']])
+    
+    # Set to NaN
+    national.loc[low_cases_mask, 'dengue_total_month'] = np.nan
+    
+    # Interpolate
+    national['dengue_total_month'] = national['dengue_total_month'].interpolate(method='linear')
+    
+    print(f'[INFO] Outliers interpolated.')
+# ---------------------------------------------------------
 
 # ============================================================================
 # DATA QUALITY CHECKS
