@@ -531,9 +531,10 @@ output_path = script_dir / 'dengue_2005_2019_national.csv'
 national.to_csv(output_path, index=False)
 print(f'[OK] Saved national data: {output_path}')
 
-output_path_prov = script_dir / 'dengue_2005_2019_provincial.csv'
-provincial_data.to_csv(output_path_prov, index=False)
-print(f'[OK] Saved provincial data: {output_path_prov}')
+
+# output_path_prov = script_dir / 'dengue_2005_2019_provincial.csv'
+# provincial_data.to_csv(output_path_prov, index=False)
+# print(f'[OK] Saved provincial data: {output_path_prov}')
 
 # ============================================================================
 # VISUALIZATION
